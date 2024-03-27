@@ -5,10 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,9 +31,13 @@ fun FormPencatatanBarang(inventarisDao: inventarisDao) {
     val jenis = remember { mutableStateOf(TextFieldValue("")) }
     val keterangan = remember { mutableStateOf(TextFieldValue("")) }
     val scope = rememberCoroutineScope()
-    Column(modifier = Modifier
-        .padding(10.dp)
-        .fillMaxWidth()) {
+    val dialogState = remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .padding(10.dp)
+            .fillMaxWidth()
+    ) {
         OutlinedTextField(
             label = { Text(text = "Nama Barang") },
             value = nama.value,
@@ -46,7 +47,7 @@ fun FormPencatatanBarang(inventarisDao: inventarisDao) {
             modifier = Modifier
                 .padding(4.dp)
                 .fillMaxWidth(),
-            placeholder = { Text(text = "Isi nama barang....") }
+            placeholder = { Text(text = "ex : Apple Macbook Air M1 2020") }
         )
         OutlinedTextField(
             label = { Text(text = "Jumlah Barang") },
@@ -57,8 +58,7 @@ fun FormPencatatanBarang(inventarisDao: inventarisDao) {
             modifier = Modifier
                 .padding(4.dp)
                 .fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType =
-            KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             placeholder = { Text(text = "5") }
         )
         OutlinedTextField(
@@ -70,7 +70,7 @@ fun FormPencatatanBarang(inventarisDao: inventarisDao) {
             modifier = Modifier
                 .padding(4.dp)
                 .fillMaxWidth(),
-            placeholder = { Text(text = "ex : Elektronik") }
+            placeholder = { Text(text = "ex : Laptop") }
         )
         OutlinedTextField(
             label = { Text(text = "Keterangan") },
@@ -81,7 +81,7 @@ fun FormPencatatanBarang(inventarisDao: inventarisDao) {
             modifier = Modifier
                 .padding(4.dp)
                 .fillMaxWidth(),
-            placeholder = { Text(text = "keterangan...") }
+            placeholder = { Text(text = "ex : Rusak") }
         )
 
         val loginButtonColors = ButtonDefaults.buttonColors(
@@ -92,21 +92,37 @@ fun FormPencatatanBarang(inventarisDao: inventarisDao) {
             backgroundColor = Teal200,
             contentColor = Purple700
         )
-        Row (modifier = Modifier
-            .padding(4.dp)
-            .fillMaxWidth()) {
-            Button(modifier = Modifier.weight(5f), onClick = {
-                val id = uuid4().toString()
-                val item = Inventaris(id, nama.value.text,
-                    jumlah.value.text, jenis.value.text, keterangan.value.text)
-                scope.launch {
-                    inventarisDao.insertAll(item)
-                }
-                nama.value = TextFieldValue("")
-                jumlah.value = TextFieldValue("")
-                jenis.value = TextFieldValue("")
-                keterangan.value = TextFieldValue("")
-            }, colors = loginButtonColors) {
+        Row(
+            modifier = Modifier
+                .padding(4.dp)
+                .fillMaxWidth()
+        ) {
+            Button(
+                modifier = Modifier.weight(5f), onClick = {
+                    if (nama.value.text.isNotBlank() && jumlah.value.text.isNotBlank() &&
+                        jenis.value.text.isNotBlank() && keterangan.value.text.isNotBlank()
+                    ) {
+                        val id = uuid4().toString()
+                        val item = Inventaris(
+                            id,
+                            nama.value.text,
+                            jumlah.value.text,
+                            jenis.value.text,
+                            keterangan.value.text
+                        )
+                        scope.launch {
+                            inventarisDao.insertAll(item)
+                        }
+                        nama.value = TextFieldValue("")
+                        jumlah.value = TextFieldValue("")
+                        jenis.value = TextFieldValue("")
+                        keterangan.value = TextFieldValue("")
+                    } else {
+                        // Show error dialog
+                        dialogState.value = true
+                    }
+                }, colors = loginButtonColors
+            ) {
                 Text(
                     text = "Simpan",
                     style = TextStyle(
@@ -115,12 +131,14 @@ fun FormPencatatanBarang(inventarisDao: inventarisDao) {
                     ), modifier = Modifier.padding(8.dp)
                 )
             }
-            Button(modifier = Modifier.weight(5f), onClick = {
-                nama.value = TextFieldValue("")
-                jumlah.value = TextFieldValue("")
-                jenis.value = TextFieldValue("")
-                keterangan.value = TextFieldValue("")
-            }, colors = resetButtonColors) {
+            Button(
+                modifier = Modifier.weight(5f), onClick = {
+                    nama.value = TextFieldValue("")
+                    jumlah.value = TextFieldValue("")
+                    jenis.value = TextFieldValue("")
+                    keterangan.value = TextFieldValue("")
+                }, colors = resetButtonColors
+            ) {
                 Text(
                     text = "Reset",
                     style = TextStyle(
@@ -130,5 +148,30 @@ fun FormPencatatanBarang(inventarisDao: inventarisDao) {
                 )
             }
         }
+    }
+
+    // Error dialog
+    if (dialogState.value) {
+        AlertDialog(
+            onDismissRequest = {
+                // Dismiss the dialog when user taps outside the dialog or presses the back button
+                dialogState.value = false
+            },
+            title = {
+                Text("Peringatan")
+            },
+            text = {
+                Text("Mohon lengkapi form")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        dialogState.value = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }
